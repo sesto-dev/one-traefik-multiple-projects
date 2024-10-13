@@ -1,0 +1,44 @@
+services:
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: project-2-web
+    restart: always
+    environment:
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.project2-http.rule=Host(`${ROOT_DOMAIN}`)
+      - traefik.http.routers.project2-http.entrypoints=http
+      - traefik.http.routers.project2-http.middlewares=https-redirect
+      - traefik.http.routers.project2-https.rule=Host(`${ROOT_DOMAIN}`)
+      - traefik.http.routers.project2-https.entrypoints=https
+      - traefik.http.routers.project2-https.tls=true
+      - traefik.http.routers.project2-https.tls.certresolver=le
+      - traefik.http.routers.project2-https.service=project2-service
+      - traefik.http.services.project2-service.loadbalancer.server.port=3000
+    networks:
+      - traefik-public
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    container_name: project2-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: project2_user
+      POSTGRES_PASSWORD: project2_pass
+      POSTGRES_DB: project2_db
+    volumes:
+      - project2-db-data:/var/lib/postgresql/data
+    networks:
+      - traefik-public
+
+volumes:
+  project2-db-data:
+
+networks:
+  traefik-public:
+    external: true
