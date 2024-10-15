@@ -37,8 +37,6 @@ services:
       POSTGRES_DB: project1_db
     volumes:
       - project1-db-data:/var/lib/postgresql/data
-    networks:
-      - traefik-public
 
 volumes:
   project1-db-data:
