@@ -56,8 +56,8 @@ Follow these steps to set up the Traefik reverse proxy and deploy multiple proje
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/traefik-multi-project-reverse-proxy.git
-cd traefik-multi-project-reverse-proxy
+git clone https://github.com/sesto-dev/one-traefik-multiple-projects.git
+cd one-traefik-multiple-projects
 ```
 
 ### 2. Configure Environment Variables
