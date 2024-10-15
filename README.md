@@ -41,7 +41,7 @@ git clone https://github.com/sesto-dev/one-traefik-multiple-projects.git
 Traefik and the projects need to communicate over a shared Docker network.
 
 ```bash
-docker network create traefik-network
+docker network create traefik-public
 ```
 
 ### 3. Traefik Docker Container
