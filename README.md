@@ -1,8 +1,8 @@
 ![Screenshot (11)](https://github.com/user-attachments/assets/4ea5c69b-9d50-4bfb-a08c-dc5523d2a7a1)
 
-# one-traefik-multiple-project
+# one-traefik-multiple-projects
 
-Welcome to the **one-traefik-multiple-project** repository! This project demonstrates how to use a single Traefik Docker container as a reverse proxy for multiple projects, each with different domains. Instead of manually installing and configuring a reverse proxy for a server, you can deploy this pre-configured Traefik container and easily add as many projects with as many domains as you need.
+This repo demonstrates how to use a single Traefik Docker container as a reverse proxy for multiple projects, each with different domains. Instead of manually installing and configuring a reverse proxy for a server, you can deploy this pre-configured Traefik container and easily add as many projects with as many domains as you need.
 
 ```
 root/
@@ -16,38 +16,15 @@ root/
 └── ... (additional projects)
 ```
 
-## Table of Contents
-
-- [one-traefik-multiple-project](#one-traefik-multiple-project)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Prerequisites](#prerequisites)
-  - [Getting Started](#getting-started)
-    - [1. Clone the Repository](#1-clone-the-repository)
-    - [2. Configure Environment Variables](#2-configure-environment-variables)
-      - [Traefik Environment Variables](#traefik-environment-variables)
-    - [3. Set Up Docker Networks](#3-set-up-docker-networks)
-    - [4. Deploy Traefik](#4-deploy-traefik)
-    - [5. Deploy Projects](#5-deploy-projects)
-      - [Project 1](#project-1)
-      - [Project 2](#project-2)
-    - [6. Verify the Setup](#6-verify-the-setup)
-
-## Features
-
-- **Single Traefik Instance**: Manage multiple projects with a single Traefik reverse proxy.
-- **Automatic HTTPS**: Leverage Let's Encrypt for automatic SSL certificate provisioning.
-- **Easy Scalability**: Add as many projects and domains as needed without additional configuration.
-- **Docker Compose**: Simplified deployment using Docker Compose for Traefik and each project.
-
 ## Prerequisites
 
 Before getting started, ensure you have the following installed on your system:
 
-- [Docker](https://docs.docker.com/get-docker/) (version 20.10.0 or higher)
-- [Docker Compose](https://docs.docker.com/compose/install/) (version 1.27.0 or higher)
-- A registered domain name pointed to your server's IP address.
-- Open ports `80` and `443` on your server.
+- Docker - [How to install Docker](https://docs.docker.com/get-docker/) (version 20.10.0 or higher)
+- Docker Compose - [How to install Docker Compose](https://docs.docker.com/compose/install/) (version 1.27.0 or higher)
+- Git - [How to Install Git on Ubuntu](https://www.digitalocean.com/community/tutorials/how-to-install-git-on-ubuntu)
+- A registered domain name pointed to your server's IP address - [What are DNS Records?](https://www.cloudflare.com/learning/dns/dns-records/) - [What is a DNS A Record?](https://www.cloudflare.com/learning/dns/dns-records/dns-a-record/)
+- Open ports `80` and `443` on your server - [How to Open a Port on a Linux Server Using UFW?](https://www.digitalocean.com/community/tutorials/opening-a-port-on-linux)
 
 ## Getting Started
 
@@ -57,19 +34,29 @@ Follow these steps to set up the Traefik reverse proxy and deploy multiple proje
 
 ```bash
 git clone https://github.com/sesto-dev/one-traefik-multiple-projects.git
-cd one-traefik-multiple-projects
 ```
 
-### 2. Configure Environment Variables
+### 2. Create Docker Network
+
+Traefik and the projects need to communicate over a shared Docker network.
+
+```bash
+docker network create traefik-network
+```
+
+### 3. Traefik Docker Container
 
 Set up the necessary environment variables for Traefik and each project.
 
-#### Traefik Environment Variables
+```bash
+cd one-traefik-multiple-projects/traefik
+```
 
 Create a `.env` file inside the `traefik` directory:
 
 ```bash
 cp .env.example .env
+nano .env
 ```
 
 Edit the `.env` file to set your domain and other necessary variables.
@@ -77,7 +64,7 @@ Edit the `.env` file to set your domain and other necessary variables.
 ```bash
 USERNAME=your_admin_username
 PASSWORD=your_admin_password
-ROOT_DOMAIN=yourdomain.com
+DOMAIN=yourdomain.com
 ACME_EMAIL=youremail@domain.com
 ```
 
@@ -87,47 +74,34 @@ ACME_EMAIL=youremail@domain.com
 export HASHED_PASSWORD=$(openssl passwd -apr1 $PASSWORD)
 ```
 
-For each project, create a `.env` file based on the provided examples.
+Then spin up your Traefik container:
 
 ```bash
-ROOT_DOMAIN=yourdomain.com
-```
-
-### 3. Set Up Docker Networks
-
-Traefik and the projects need to communicate over a shared Docker network.
-
-```bash
-docker network create traefik-network
-```
-
-### 4. Deploy Traefik
-
-Navigate to the `traefik` directory and launch the Traefik service using Docker Compose.
-
-```bash
-cd traefik
 docker compose up -d
 ```
 
-### 5. Deploy Projects
+### 4. Project Docker Containers
 
-For each project, navigate to the project directory and launch the service using Docker Compose.
-
-#### Project 1
+For each project, create a `.env` file based on the provided examples and enter the DOMAIN for that project.
 
 ```bash
-cd project-1
+cd ../project-1
+cp .env.example .env
+nano .env`
+```
+
+```bash
+DOMAIN=project1.yourdomain.com
+```
+
+Then spin up the project container:
+
+```bash
 docker compose up -d
 ```
 
-#### Project 2
+Repeat for project-2.
 
-```bash
-cd project-2
-docker compose up -d
-```
+### 5. Verify the Setup
 
-### 6. Verify the Setup
-
-Open your browser and navigate to the domains you've configured. You should see the projects running correctly.
+Open your browser and navigate to the domains you've configured. You should see the projects running correctly. You can also visit Traefik's dashboard at `https://traefik.yourdomain.com`.

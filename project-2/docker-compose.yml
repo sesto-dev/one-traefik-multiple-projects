@@ -9,10 +9,10 @@ services:
       - NODE_ENV=production
     labels:
       - traefik.enable=true
-      - traefik.http.routers.project2-http.rule=Host(`${ROOT_DOMAIN}`)
+      - traefik.http.routers.project2-http.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.project2-http.entrypoints=http
       - traefik.http.routers.project2-http.middlewares=https-redirect
-      - traefik.http.routers.project2-https.rule=Host(`${ROOT_DOMAIN}`)
+      - traefik.http.routers.project2-https.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.project2-https.entrypoints=https
       - traefik.http.routers.project2-https.tls=true
       - traefik.http.routers.project2-https.tls.certresolver=le
