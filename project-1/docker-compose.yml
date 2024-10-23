@@ -13,9 +13,11 @@ services:
              uvicorn main:app --host 0.0.0.0 --port 8000"
     labels:
       - traefik.enable=true
+
       - traefik.http.routers.project1-http.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.project1-http.entrypoints=http
       - traefik.http.routers.project1-http.middlewares=https-redirect
+
       - traefik.http.routers.project1-https.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.project1-https.entrypoints=https
       - traefik.http.routers.project1-https.tls=true
