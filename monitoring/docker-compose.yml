@@ -1,5 +1,7 @@
+version: "3.8"
+
 services:
-  prometheus-service:
+  prometheus:
     image: prom/prometheus
     volumes:
       - ./prometheus:/etc/prometheus
@@ -12,33 +14,47 @@ services:
       - "--web.console.templates=/usr/share/prometheus/consoles"
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "prometheus", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  grafana-service:
+  grafana:
     image: grafana/grafana
     labels:
-      # Enable Traefik for this service
       - "traefik.enable=true"
-
       - traefik.http.routers.grafana-http.rule=Host(`${GRAFANA_DOMAIN}`)
       - traefik.http.routers.grafana-http.entrypoints=http
       - traefik.http.routers.grafana-http.middlewares=https-redirect
-
       - traefik.http.routers.grafana-https.rule=Host(`${GRAFANA_DOMAIN}`)
       - traefik.http.routers.grafana-https.entrypoints=https
       - traefik.http.routers.grafana-https.tls=true
       - traefik.http.routers.grafana-https.tls.certresolver=le
       - traefik.http.routers.grafana-https.service=grafana-service
-
       - traefik.http.services.grafana-service.loadbalancer.server.port=3000
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
-      - prometheus-service
+      - prometheus
+      - loki
+      - promtail
+      - node-exporter
+      - cadvisor
+      - alertmanager
+      - tempo
     networks:
       - default
       - traefik-public
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
 
-  loki-service:
+  loki:
     image: grafana/loki
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
@@ -46,6 +62,11 @@ services:
       - loki_data:/loki
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   promtail:
     image: grafana/promtail
@@ -55,6 +76,13 @@ services:
     command: -config.file=/etc/promtail/config.yml
     networks:
       - default
+    environment:
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   node-exporter:
     image: prom/node-exporter
@@ -67,23 +95,24 @@ services:
       - "--path.sysfs=/host/sys"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     labels:
-      # Enable Traefik for this service
       - "traefik.enable=true"
-
       - traefik.http.routers.node-exporter-http.rule=Host(`${NODE_EXPORTER_DOMAIN}`)
       - traefik.http.routers.node-exporter-http.entrypoints=http
       - traefik.http.routers.node-exporter-http.middlewares=https-redirect
-
       - traefik.http.routers.node-exporter-https.rule=Host(`${NODE_EXPORTER_DOMAIN}`)
       - traefik.http.routers.node-exporter-https.entrypoints=https
       - traefik.http.routers.node-exporter-https.tls=true
       - traefik.http.routers.node-exporter-https.tls.certresolver=le
       - traefik.http.routers.node-exporter-https.service=node-exporter-service
-
       - traefik.http.services.node-exporter-service.loadbalancer.server.port=9100
     networks:
       - default
       - traefik-public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
@@ -94,28 +123,63 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     labels:
-      # Enable Traefik for this service
       - "traefik.enable=true"
-
       - traefik.http.routers.cadvisor-http.rule=Host(`${CADVISOR_DOMAIN}`)
       - traefik.http.routers.cadvisor-http.entrypoints=http
       - traefik.http.routers.cadvisor-http.middlewares=https-redirect
-
       - traefik.http.routers.cadvisor-https.rule=Host(`${CADVISOR_DOMAIN}`)
       - traefik.http.routers.cadvisor-https.entrypoints=https
       - traefik.http.routers.cadvisor-https.tls=true
       - traefik.http.routers.cadvisor-https.tls.certresolver=le
       - traefik.http.routers.cadvisor-https.service=cadvisor-service
-
       - traefik.http.services.cadvisor-service.loadbalancer.server.port=8080
     networks:
       - default
       - traefik-public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  alertmanager:
+    image: prom/alertmanager
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    networks:
+      - default
+      - traefik-public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  tempo:
+    image: grafana/tempo:latest
+    volumes:
+      - ./tempo:/etc/tempo
+    command:
+      - "--config.file=/etc/tempo/tempo.yaml"
+    ports:
+      - "3200:3200"
+    networks:
+      - default
+      - traefik-public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3200/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   prometheus_data:
   grafana_data:
   loki_data:
+  alertmanager_data:
+  tempo_data:
 
 networks:
   default:
